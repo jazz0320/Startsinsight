@@ -1,23 +1,32 @@
-import logo from "./logo.svg";
 import "./App.css";
 import { useEffect, useState } from "react";
 import styled from "styled-components";
 
 const ScoreTable = styled.table`
-  background-color: #343a40;
-  color: white;
+  margin-top: 50px;
   text-align: center;
   border-radius: 5px;
-  border: 0px;
+  border: 1px;
+  td,
+  th {
+    width: 100px;
+    text-align: center;
+    border: 1px solid #333;
+  }
+`;
+const ContentDiv = styled.div`
+  display: flex;
+  justify-content: center;
 `;
 
 const BallDiv = styled.div`
   position: absolute;
+  top: -50px;
 `;
 
 const Img = styled.img`
-  /* height: 1000px;
-  width: 1125px; */
+  height: 1148px;
+  width: 1291.5px;
 `;
 
 const Cvs = styled.canvas`
@@ -53,18 +62,15 @@ function App() {
       .then((response) => response.json())
       .catch((error) => console.error("Error:", error))
       .then((response) => {
-        let removeInvalidData = response.filter(
-          (data) => data.APP_VeloRel !== ""
-        );
-        setPitchData(removeInvalidData);
+        setPitchData(response);
 
         let totalType = [];
-        for (const type of removeInvalidData) {
+        for (const type of response) {
           totalType.push(type.TaggedPitchType);
         }
         setPitchType(Array.from(new Set(totalType)));
 
-        for (const type of removeInvalidData) {
+        for (const type of response) {
           // console.log(type.TaggedPitchType);
           if (!(type.TaggedPitchType in newData)) {
             Object.assign(newData, {
@@ -101,10 +107,10 @@ function App() {
 
         // let x = Number(type.APP_KZoneY);
         // let y = Number(type.APP_KZoneZ);
-        let x = Number(type.APP_KZoneY) * 28.75 + 1288.5;
-        let y = 2119.25 - Number(type.APP_KZoneZ) * 28.625;
+        let x = (Number(type.APP_KZoneY) * 28.75 + 1288.5) / 2;
+        let y = (2119.25 - Number(type.APP_KZoneZ) * 28.625) / 2;
         ctx.beginPath();
-        ctx.ellipse(x, y, 20, 20, 0, 0, Math.PI * 2);
+        ctx.ellipse(x, y, 10, 10, 0, 0, Math.PI * 2);
         ctx.fill();
         console.log(Number(type.APP_KZoneY) * 28.75 + 1288.5 - 20);
       }
@@ -112,11 +118,11 @@ function App() {
   }, [pitchData]);
 
   return (
-    <div>
+    <ContentDiv>
       <ScoreTable cellPadding="5" border="1">
         <thead>
           <tr>
-            <th width="110px">球種</th>
+            <th>球種</th>
             <th>球數</th>
             <th>平均球速</th>
             <th>好球率</th>
@@ -131,15 +137,33 @@ function App() {
               </td>
               <td>{pitchNewData[type].count}</td>
               <td>
-                {Math.floor(
-                  pitchNewData[type].APP_VeloRel.reduce(
-                    (a, b) => a + b / pitchNewData[type].APP_VeloRel.length,
+                {Math.round(
+                  pitchNewData[type].APP_VeloRel.filter(
+                    (vel) => vel !== 0
+                  ).reduce((a, b, i, arr) => a + b / arr.length, 0) * 10
+                ) / 10}
+              </td>
+              <td>
+                {Math.round(
+                  pitchNewData[type].PitchCode.map((e) =>
+                    e !== "Ball" ? 1 : 0
+                  ).reduce(
+                    (a, b) => a + b / pitchNewData[type].PitchCode.length,
                     0
-                  )
+                  ) * 100
                 )}
               </td>
-              <td>{pitchNewData[type].count}</td>
-              <td>{pitchNewData[type].count}</td>
+              <td>
+                {Math.round(
+                  (pitchNewData[type].PlayResult.filter(
+                    (e) => e === "1B" || e === "2B" || e === "3B"
+                  ).length /
+                    pitchNewData[type].PlayResult.filter(
+                      (e) => e !== "HR" && e !== "" && e !== "SH"
+                    ).length) *
+                    1000
+                ) / 1000 || "-"}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -148,7 +172,7 @@ function App() {
         <Img src={require("./img/goodball.png")} />
         <Cvs id="cvs" width={2583} height={2296}></Cvs>
       </BallDiv>
-    </div>
+    </ContentDiv>
   );
 }
 
